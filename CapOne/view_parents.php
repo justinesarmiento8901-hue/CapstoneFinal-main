@@ -165,10 +165,12 @@ if (isset($_POST['update_submit'])) {
                         <a href="addinfant.php" class="btn btn-outline-primary"><i class="bi bi-person-plus"></i> Add Infant</a>
                     </div>
                     <?php if (!$isParent): ?>
-                        <form method="GET" action="view_parents.php" class="mb-4">
-                            <div class="input-group search-bar search-bar-elevated">
+                        <form id="searchForm" method="GET" action="view_parents.php" class="mb-4">
+                            <div class="input-group search-bar search-bar-elevated" style="max-width:420px;">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" id="search" class="form-control" placeholder="Search by ID, Name, or Email...">
+                                <input type="text" id="search" name="search" class="form-control" placeholder="Search by ID, Name, or Email...">
+                                <button class="btn btn-outline-secondary" type="button" title="Clear" onclick="clearSearch()"><i class="bi bi-x-lg"></i></button>
+                                <button class="btn btn-primary" type="submit">Search</button>
                             </div>
                         </form>
                     <?php endif; ?>
@@ -194,126 +196,153 @@ if (isset($_POST['update_submit'])) {
                                     <?php
                                     $search = (!$isParent && isset($_GET['search'])) ? mysqli_real_escape_string($con, $_GET['search']) : '';
 
+                                    // Pagination settings
+                                    $per_page = 10;
+                                    $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+                                    if ($page < 1) $page = 1;
+                                    $offset = ($page - 1) * $per_page;
+
+                                    // Build WHERE clause depending on role and search
+                                    $where = '';
                                     if ($isParent && $parentEmail) {
-                                        // Parents can only view their own record (with optional search across their own fields)
+                                        $where = "parents.email = '$parentEmail'";
                                         if (!empty($search)) {
-                                            $sql = "SELECT parents.*, 
-                                               GROUP_CONCAT(infantinfo.id SEPARATOR ', ') AS infant_ids, 
-                                               GROUP_CONCAT(infantinfo.firstname SEPARATOR ', ') AS infant_names
-                                            FROM parents
-                                            LEFT JOIN infantinfo ON parents.id = infantinfo.parent_id
-                                            WHERE parents.email = '$parentEmail' AND (
-                                                parents.id LIKE '%$search%' OR
-                                                parents.first_name LIKE '%$search%' OR 
-                                                parents.last_name LIKE '%$search%' OR 
-                                                parents.email LIKE '%$search%')
-                                            GROUP BY parents.id";
-                                        } else {
-                                            $sql = "SELECT parents.*, 
-                                               GROUP_CONCAT(infantinfo.id SEPARATOR ', ') AS infant_ids, 
-                                               GROUP_CONCAT(infantinfo.firstname SEPARATOR ', ') AS infant_names
-                                            FROM parents
-                                            LEFT JOIN infantinfo ON parents.id = infantinfo.parent_id
-                                            WHERE parents.email = '$parentEmail'
-                                            GROUP BY parents.id";
+                                            $where .= " AND (parents.id LIKE '%$search%' OR parents.first_name LIKE '%$search%' OR parents.last_name LIKE '%$search%' OR parents.email LIKE '%$search%')";
                                         }
                                     } else {
                                         if (!empty($search)) {
-                                            $sql = "SELECT parents.*, 
-                                               GROUP_CONCAT(infantinfo.id SEPARATOR ', ') AS infant_ids, 
-                                               GROUP_CONCAT(infantinfo.firstname SEPARATOR ', ') AS infant_names
-                                            FROM parents
-                                            LEFT JOIN infantinfo ON parents.id = infantinfo.parent_id
-                                            WHERE 
-                                                parents.id LIKE '%$search%' OR
-                                                parents.first_name LIKE '%$search%' OR 
-                                                parents.last_name LIKE '%$search%' OR 
-                                                parents.email LIKE '%$search%'
-                                            GROUP BY parents.id";
+                                            $where = "(parents.id LIKE '%$search%' OR parents.first_name LIKE '%$search%' OR parents.last_name LIKE '%$search%' OR parents.email LIKE '%$search%')";
                                         } else {
-                                            $sql = "SELECT parents.*, 
-                                               GROUP_CONCAT(infantinfo.id SEPARATOR ', ') AS infant_ids, 
-                                               GROUP_CONCAT(infantinfo.firstname SEPARATOR ', ') AS infant_names
-                                            FROM parents
-                                            LEFT JOIN infantinfo ON parents.id = infantinfo.parent_id
-                                            GROUP BY parents.id";
+                                            $where = '1';
                                         }
                                     }
+
+                                    // Get total distinct parent count for pagination
+                                    $count_sql = "SELECT COUNT(DISTINCT parents.id) AS total FROM parents LEFT JOIN infantinfo ON parents.id = infantinfo.parent_id WHERE $where";
+                                    $count_res = mysqli_query($con, $count_sql);
+                                    $total = 0;
+                                    if ($count_res) {
+                                        $row_count = mysqli_fetch_assoc($count_res);
+                                        $total = (int) ($row_count['total'] ?? 0);
+                                    }
+                                    $total_pages = ($total > 0) ? (int) ceil($total / $per_page) : 1;
+
+                                    // Fetch paginated data
+                                    $sql = "SELECT parents.*, 
+                                               GROUP_CONCAT(infantinfo.id SEPARATOR ', ') AS infant_ids, 
+                                               GROUP_CONCAT(infantinfo.firstname SEPARATOR ', ') AS infant_names
+                                            FROM parents
+                                            LEFT JOIN infantinfo ON parents.id = infantinfo.parent_id
+                                            WHERE $where
+                                            GROUP BY parents.id
+                                            ORDER BY parents.id ASC
+                                            LIMIT $offset, $per_page";
 
                                     $result = mysqli_query($con, $sql);
                                     if ($result) {
-                                        while ($row = mysqli_fetch_assoc($result)) {
-                                            $id = $row['id']; // Corrected column name from 'parent_id' to 'id'
-                                            $first_name = $row['first_name'];
-                                            $last_name = $row['last_name'];
-                                            $fullName = trim(preg_replace('/\s+/', ' ', $first_name . ' ' . $last_name));
-                                            $phone = $row['phone'];
-                                            $barangay = $row['barangay'];
-                                            $address = $row['address']; ?>
+                                        if (!empty($search) && $total === 0) {
+                                            $colspan = $isParent ? 7 : 8;
+                                            echo '<tr><td colspan="' . $colspan . '" class="text-center text-muted">No results found for "' . htmlspecialchars($search, ENT_QUOTES, 'UTF-8') . '".</td></tr>';
+                                        } else {
+                                            while ($row = mysqli_fetch_assoc($result)) {
+                                                $id = $row['id'];
+                                                $first_name = $row['first_name'];
+                                                $last_name = $row['last_name'];
+                                                $fullName = trim(preg_replace('/\s+/', ' ', $first_name . ' ' . $last_name));
+                                                $phone = $row['phone'];
+                                                $barangay = $row['barangay'];
+                                                $address = $row['address'];
+                                                ?>
 
-                                            <tr>
-                                                <th scope="row"><?php echo $id; ?></th>
-                                                <td><?php echo $fullName; ?></td>
-                                                <td><?php echo $phone; ?></td>
-                                                <td><?php echo $barangay; ?></td>
-                                                <td><?php echo $address; ?></td>
-                                                <td><?php echo $row['infant_ids'] ?: 'N/A'; ?></td> <!-- Display concatenated Infant IDs -->
-                                                <td><?php echo $row['infant_names'] ?: 'N/A'; ?></td> <!-- Display concatenated Infant Names -->
-                                                <?php if (!$isParent): ?>
-                                                    <td class="d-flex gap-1 justify-content-center action-icons">
-                                                        <button class="btn btn-outline-success btn-sm" onclick="confirmEdit(<?php echo $id; ?>)" title="Edit"><i class="bi bi-pencil-square"></i></button>
-                                                        <?php if ($showDeleteButton): ?>
-                                                            <button class="btn btn-outline-danger btn-sm" onclick="confirmDelete(<?php echo $id; ?>)" title="Delete"><i class="bi bi-trash"></i></button>
-                                                        <?php endif; ?>
-                                                    </td>
-                                                <?php endif; ?>
-                                            </tr>
+                                                <tr>
+                                                    <th scope="row"><?php echo $id; ?></th>
+                                                    <td><?php echo $fullName; ?></td>
+                                                    <td><?php echo $phone; ?></td>
+                                                    <td><?php echo $barangay; ?></td>
+                                                    <td><?php echo $address; ?></td>
+                                                    <td><?php echo $row['infant_ids'] ?: 'N/A'; ?></td>
+                                                    <td><?php echo $row['infant_names'] ?: 'N/A'; ?></td>
+                                                    <?php if (!$isParent): ?>
+                                                        <td class="d-flex gap-1 justify-content-center action-icons">
+                                                            <button class="btn btn-outline-success btn-sm" onclick="confirmEdit(<?php echo $id; ?>)" title="Edit"><i class="bi bi-pencil-square"></i></button>
+                                                            <?php if ($showDeleteButton): ?>
+                                                                <button class="btn btn-outline-danger btn-sm" onclick="confirmDelete(<?php echo $id; ?>)" title="Delete"><i class="bi bi-trash"></i></button>
+                                                            <?php endif; ?>
+                                                        </td>
+                                                    <?php endif; ?>
+                                                </tr>
 
-                                            <!-- Modal for EDIT -->
-                                            <div class="modal fade" id="formModal_<?php echo $id; ?>" tabindex="-1" aria-labelledby="formModalLabel" aria-hidden="true">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title text-primary" id="formModalLabel">Edit Parent Information</h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <form method="POST" action="view_parents.php">
-                                                                <input type="hidden" name="update_id" value="<?php echo $id; ?>">
-                                                                <div class="mb-3">
-                                                                    <label for="first_name" class="form-label">First Name</label>
-                                                                    <input type="text" class="form-control" name="update_first_name" value="<?php echo $first_name; ?>" required>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label for="last_name" class="form-label">Last Name</label>
-                                                                    <input type="text" class="form-control" name="update_last_name" value="<?php echo $last_name; ?>" required>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label for="phone_number" class="form-label">Phone Number</label>
-                                                                    <input type="text" class="form-control" name="update_phone_number" value="<?php echo $phone; ?>">
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label for="barangay" class="form-label">Barangay</label>
-                                                                    <input type="text" class="form-control" name="update_barangay" value="<?php echo $barangay; ?>">
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label for="address" class="form-label">Address</label>
-                                                                    <textarea class="form-control" name="update_address"><?php echo $address; ?></textarea>
-                                                                </div>
-                                                                <div class="text-center">
-                                                                    <button type="submit" name="update_submit" class="btn btn-primary w-50">Submit</button>
-                                                                </div>
-                                                            </form>
+                                                <!-- Modal for EDIT -->
+                                                <div class="modal fade" id="formModal_<?php echo $id; ?>" tabindex="-1" aria-labelledby="formModalLabel" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title text-primary" id="formModalLabel">Edit Parent Information</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <form method="POST" action="view_parents.php">
+                                                                    <input type="hidden" name="update_id" value="<?php echo $id; ?>">
+                                                                    <div class="mb-3">
+                                                                        <label for="first_name" class="form-label">First Name</label>
+                                                                        <input type="text" class="form-control" name="update_first_name" value="<?php echo $first_name; ?>" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label for="last_name" class="form-label">Last Name</label>
+                                                                        <input type="text" class="form-control" name="update_last_name" value="<?php echo $last_name; ?>" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label for="phone_number" class="form-label">Phone Number</label>
+                                                                        <input type="text" class="form-control" name="update_phone_number" value="<?php echo $phone; ?>">
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label for="barangay" class="form-label">Barangay</label>
+                                                                        <input type="text" class="form-control" name="update_barangay" value="<?php echo $barangay; ?>">
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label for="address" class="form-label">Address</label>
+                                                                        <textarea class="form-control" name="update_address"><?php echo $address; ?></textarea>
+                                                                    </div>
+                                                                    <div class="text-center">
+                                                                        <button type="submit" name="update_submit" class="btn btn-primary w-50">Submit</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                    <?php
-                                        }
-                                    }
+                                                <?php
+                                            } // end while
+                                        } // end else
+                                    } // end if result
                                     ?>
+                                
                                 </tbody>
                             </table>
+                            <?php if (isset($total_pages) && $total_pages > 1): ?>
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination justify-content-center mt-3">
+                                        <?php
+                                        $search_param = $search !== '' ? '&search=' . urlencode($search) : '';
+                                        $prev_page = $page - 1;
+                                        $next_page = $page + 1;
+                                        ?>
+                                        <li class="page-item <?php echo ($page <= 1) ? 'disabled' : ''; ?>">
+                                            <a class="page-link" href="view_parents.php?page=<?php echo max(1, $prev_page) . $search_param; ?>" aria-label="Previous">Previous</a>
+                                        </li>
+                                        <?php
+                                        $start = max(1, $page - 2);
+                                        $end = min($total_pages, $page + 2);
+                                        for ($p = $start; $p <= $end; $p++):
+                                        ?>
+                                            <li class="page-item <?php echo ($p === $page) ? 'active' : ''; ?>"><a class="page-link" href="view_parents.php?page=<?php echo $p . $search_param; ?>"><?php echo $p; ?></a></li>
+                                        <?php endfor; ?>
+                                        <li class="page-item <?php echo ($page >= $total_pages) ? 'disabled' : ''; ?>">
+                                            <a class="page-link" href="view_parents.php?page=<?php echo min($total_pages, $next_page) . $search_param; ?>" aria-label="Next">Next</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -354,24 +383,15 @@ if (isset($_POST['update_submit'])) {
             });
         }
 
-        $(document).ready(function() {
-            $("#search").on("keyup", function() {
-                let searchText = $(this).val();
-                $.ajax({
-                    url: "search_parents.php",
-                    method: "POST",
-                    data: {
-                        search: searchText
-                    },
-                    success: function(response) {
-                        $("table tbody").html(response);
-                    },
-                    error: function() {
-                        console.error("An error occurred while processing the search request.");
-                    }
-                });
-            });
-        });
+        // Search now uses the form submit button and GET parameter `search`.
+        // Live (keyup) AJAX search has been removed per request.
+
+        function clearSearch() {
+            var form = document.getElementById('searchForm');
+            var input = document.getElementById('search');
+            if (input) input.value = '';
+            if (form) form.submit();
+        }
     </script>
     <script src="assets/js/theme.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

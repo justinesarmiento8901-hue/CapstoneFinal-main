@@ -162,6 +162,33 @@ if (isset($_GET['parent_id'])) {
     echo "Parent ID is required.";
     exit;
 }
+
+// Prepare header logos (base64) to be used by client-side PDF export
+$logoLeftSrc = '';
+$logoRightSrc = '';
+$baseDir = realpath(__DIR__ . '/');
+$logoDir = $baseDir . DIRECTORY_SEPARATOR . 'header logo';
+$images = [];
+if (is_dir($logoDir)) {
+    $images = glob($logoDir . DIRECTORY_SEPARATOR . '*.{jpg,jpeg,png,gif,JPG,JPEG,PNG,GIF}', GLOB_BRACE) ?: [];
+    sort($images, SORT_NATURAL | SORT_FLAG_CASE);
+}
+if (!empty($images)) {
+    $leftPath = $images[0];
+    $data = @file_get_contents($leftPath);
+    if ($data !== false) {
+        $mime = mime_content_type($leftPath) ?: 'image/jpeg';
+        $logoLeftSrc = 'data:' . $mime . ';base64,' . base64_encode($data);
+    }
+}
+if (isset($images[1])) {
+    $rightPath = $images[1];
+    $data2 = @file_get_contents($rightPath);
+    if ($data2 !== false) {
+        $mime2 = mime_content_type($rightPath) ?: 'image/jpeg';
+        $logoRightSrc = 'data:' . $mime2 . ';base64,' . base64_encode($data2);
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -337,6 +364,11 @@ if (isset($_GET['parent_id'])) {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script>
+        // Pass logo data URIs to client-side code
+        var logoLeftData = <?php echo json_encode($logoLeftSrc); ?>;
+        var logoRightData = <?php echo json_encode($logoRightSrc); ?>;
+    </script>
+    <script>
         document.addEventListener('DOMContentLoaded', function () {
             function decodeHtml(str) {
                 var txt = document.createElement('textarea');
@@ -399,10 +431,48 @@ if (isset($_GET['parent_id'])) {
                         }
                         var jsPDF = window.jspdf.jsPDF;
                         var doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'letter' });
-                        doc.setFontSize(14);
-                        doc.text(title, 40, 40);
-                        doc.setFontSize(11);
-                        doc.text('Generated: ' + formattedTimestamp, 40, 60);
+
+                        // Draw header: left/right logos, centered org text, blue rule and orange band
+                        var pageWidth = doc.internal.pageSize.getWidth();
+                        var headerTop = 20; // y coordinate for logos
+                        var logoW = 56;
+                        var logoH = 56;
+                        try {
+                            if (logoLeftData) {
+                                var fmtLeft = logoLeftData.indexOf('image/png') !== -1 ? 'PNG' : 'JPEG';
+                                doc.addImage(logoLeftData, fmtLeft, 40, headerTop, logoW, logoH);
+                            }
+                        } catch (e) {}
+                        try {
+                            if (logoRightData) {
+                                var fmtRight = logoRightData.indexOf('image/png') !== -1 ? 'PNG' : 'JPEG';
+                                doc.addImage(logoRightData, fmtRight, pageWidth - 40 - logoW, headerTop, logoW, logoH);
+                            }
+                        } catch (e) {}
+
+                        // Centered organization text
+                        doc.setFontSize(12);
+                        doc.setTextColor(0,0,0);
+                        doc.text('REPUBLIC OF THE PHILIPPINES', pageWidth / 2, headerTop + 16, { align: 'center' });
+                        doc.text('RHU ALIAGA', pageWidth / 2, headerTop + 32, { align: 'center' });
+                        doc.setFontSize(10);
+                        doc.text('Municipality of Aliaga, Nueva Ecija', pageWidth / 2, headerTop + 46, { align: 'center' });
+
+                        // Blue rule
+                        doc.setFillColor(11,94,215);
+                        doc.rect(40, headerTop + logoH + 8, pageWidth - 80, 6, 'F');
+
+                        // Orange band with report title
+                        doc.setFillColor(245,156,0);
+                        doc.rect(40, headerTop + logoH + 16, pageWidth - 80, 18, 'F');
+                        doc.setTextColor(255,255,255);
+                        doc.setFontSize(12);
+                        doc.text(title, pageWidth / 2, headerTop + logoH + 29, { align: 'center' });
+
+                        // Generated timestamp
+                        doc.setTextColor(0,0,0);
+                        doc.setFontSize(10);
+                        doc.text('Generated: ' + formattedTimestamp, 40, headerTop + logoH + 46);
                         var headers = [['Vaccinated By', 'Vaccine', 'Stage', 'Status', 'Date Complete']];
                         var bodyRows = Array.from(table.querySelectorAll('tbody tr')).map(function (row) {
                             var cells = Array.from(row.querySelectorAll('td')).map(function (cell) {

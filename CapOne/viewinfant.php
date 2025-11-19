@@ -177,10 +177,60 @@ if (isset($_POST['new_submit'])) {
                 </div>
                 <div class="card-body">
                     <?php if (!$isParent): ?>
-                        <form method="GET" action="viewinfant.php" class="mb-4">
-                            <div class="input-group search-bar search-bar-elevated">
-                                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" id="search" class="form-control" placeholder="Search by ID, Name, or Birthplace...">
+                        <form id="searchForm" method="GET" action="viewinfant.php" class="mb-4">
+                            <div class="d-flex align-items-center" style="gap: 0.5rem; max-width: 720px;">
+                                <div class="input-group search-bar search-bar-elevated" style="max-width:380px;">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="search" name="search" class="form-control" placeholder="Search by ID, Name, or Birthplace..." value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>">
+                                    <button class="btn btn-outline-secondary" type="button" title="Clear" onclick="clearSearch()"><i class="bi bi-x-lg"></i></button>
+                                    <button class="btn btn-primary" type="submit">Search</button>
+                                </div>
+                                <div class="ms-2 d-flex align-items-center" style="gap:0.75rem;">
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="sex" id="sexAll" value="" <?php if (!isset($_GET['sex']) || $_GET['sex'] === '') echo 'checked'; ?> onchange="this.form.submit()">
+                                        <label class="form-check-label" for="sexAll">All</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="sex" id="sexMale" value="Male" <?php if (isset($_GET['sex']) && $_GET['sex'] === 'Male') echo 'checked'; ?> onchange="this.form.submit()">
+                                        <label class="form-check-label" for="sexMale">Male</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="sex" id="sexFemale" value="Female" <?php if (isset($_GET['sex']) && $_GET['sex'] === 'Female') echo 'checked'; ?> onchange="this.form.submit()">
+                                        <label class="form-check-label" for="sexFemale">Female</label>
+                                    </div>
+                                
+                                </div>
+                            </div>
+                            <div class="w-100"></div>
+                            <div class="mt-2" style="max-width:720px;">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center" style="gap:0.5rem;">
+                                        <label class="mb-0 text-muted" style="font-size:0.9rem;">Birth range:</label>
+                                        <input type="date" name="birth_from" class="form-control form-control-sm" style="width:170px;" value="<?php echo isset($_GET['birth_from']) ? htmlspecialchars($_GET['birth_from']) : ''; ?>">
+                                        <span class="text-muted">to</span>
+                                        <input type="date" name="birth_to" class="form-control form-control-sm" style="width:170px;" value="<?php echo isset($_GET['birth_to']) ? htmlspecialchars($_GET['birth_to']) : ''; ?>">
+                                    </div>
+                                    <div class="d-flex" style="gap:0.5rem;">
+                                        <?php
+                                        // Build export query preserving current filters (use raw GET so variables defined later won't be undefined)
+                                        $exportParams = [];
+                                        $search_for_export = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
+                                        $sex_for_export = isset($_GET['sex']) ? trim((string)$_GET['sex']) : '';
+                                        $birth_from_for_export = isset($_GET['birth_from']) ? trim((string)$_GET['birth_from']) : '';
+                                        $birth_to_for_export = isset($_GET['birth_to']) ? trim((string)$_GET['birth_to']) : '';
+                                        if ($search_for_export !== '') $exportParams['search'] = $search_for_export;
+                                        if ($sex_for_export !== '') $exportParams['sex'] = $sex_for_export;
+                                        if ($birth_from_for_export !== '') $exportParams['birth_from'] = $birth_from_for_export;
+                                        if ($birth_to_for_export !== '') $exportParams['birth_to'] = $birth_to_for_export;
+                                        $csvQuery = http_build_query(array_merge($exportParams, ['format' => 'csv']));
+                                        $pdfQuery = http_build_query(array_merge($exportParams, ['format' => 'pdf']));
+                                        $csvHref = 'export_infants.php?' . $csvQuery;
+                                        $pdfHref = 'export_infants.php?' . $pdfQuery;
+                                        ?>
+                                        <a class="btn btn-outline-success btn-sm" href="<?php echo htmlspecialchars($csvHref, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" title="Export CSV"><i class="bi bi-file-earmark-spreadsheet"></i> CSV</a>
+                                        <a class="btn btn-outline-primary btn-sm" href="<?php echo htmlspecialchars($pdfHref, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" title="Export PDF"><i class="bi bi-printer"></i> PDF</a>
+                                    </div>
+                                </div>
                             </div>
                         </form>
                     <?php endif; ?>
@@ -204,145 +254,226 @@ if (isset($_POST['new_submit'])) {
                                 </thead>
                                 <tbody>
                                     <?php
-                                    // FOR VIEWING INFANT INFORMATION
-
-                                    // $sql = "SELECT * FROM infantinfo";
+                                    // FOR VIEWING INFANT INFORMATION WITH PAGINATION
                                     $search = (!$isParent && isset($_GET['search'])) ? mysqli_real_escape_string($con, $_GET['search']) : '';
+                                    $sex_filter = (!$isParent && isset($_GET['sex']) && in_array($_GET['sex'], ['Male', 'Female'])) ? $_GET['sex'] : '';
 
+                                    // Birthdate range filters (YYYY-MM-DD)
+                                    $birth_from = '';
+                                    $birth_to = '';
+                                    if (!$isParent) {
+                                        if (!empty($_GET['birth_from'])) {
+                                            $ts = strtotime($_GET['birth_from']);
+                                            if ($ts !== false) {
+                                                $birth_from = date('Y-m-d', $ts);
+                                            }
+                                        }
+                                        if (!empty($_GET['birth_to'])) {
+                                            $ts2 = strtotime($_GET['birth_to']);
+                                            if ($ts2 !== false) {
+                                                $birth_to = date('Y-m-d', $ts2);
+                                            }
+                                        }
+                                    }
+
+                                    // Pagination settings
+                                    $per_page = 10;
+                                    $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+                                    if ($page < 1) $page = 1;
+                                    $offset = ($page - 1) * $per_page;
+
+                                    // If parent, resolve parent id first
+                                    $parentIdFilter = 0;
                                     if ($isParent && $parentEmail) {
-                                        // Resolve parent id from email
                                         $parentRes = mysqli_query($con, "SELECT id FROM parents WHERE email = '$parentEmail' LIMIT 1");
-                                        $parentIdFilter = 0;
                                         if ($parentRes && mysqli_num_rows($parentRes) > 0) {
                                             $parentRow = mysqli_fetch_assoc($parentRes);
                                             $parentIdFilter = intval($parentRow['id']);
                                         }
+                                    }
+
+                                    // Build WHERE clause
+                                    if ($isParent && $parentIdFilter > 0) {
+                                        $where = "parent_id = $parentIdFilter";
                                         if (!empty($search)) {
-                                            $sql = "SELECT * FROM infantinfo WHERE parent_id = '$parentIdFilter' AND (
-                                    id LIKE '%$search%' OR
-                                    firstname LIKE '%$search%' OR 
-                                    middlename LIKE '%$search%' OR 
-                                    surname LIKE '%$search%' OR 
-                                    placeofbirth LIKE '%$search%')";
-                                        } else {
-                                            $sql = "SELECT * FROM infantinfo WHERE parent_id = '$parentIdFilter'";
+                                            $where .= " AND (id LIKE '%$search%' OR firstname LIKE '%$search%' OR middlename LIKE '%$search%' OR surname LIKE '%$search%' OR placeofbirth LIKE '%$search%')";
+                                        }
+                                        if (!empty($sex_filter)) {
+                                            $where .= " AND sex = '" . mysqli_real_escape_string($con, $sex_filter) . "'";
+                                        }
+                                        if (!empty($birth_from)) {
+                                            $where .= " AND dateofbirth >= '" . mysqli_real_escape_string($con, $birth_from) . "'";
+                                        }
+                                        if (!empty($birth_to)) {
+                                            $where .= " AND dateofbirth <= '" . mysqli_real_escape_string($con, $birth_to) . "'";
                                         }
                                     } else {
+                                        $where = '1';
                                         if (!empty($search)) {
-                                            $sql = "SELECT * FROM infantinfo WHERE 
-                                    id LIKE '%$search%' OR
-                                    firstname LIKE '%$search%' OR 
-                                    middlename LIKE '%$search%' OR 
-                                    surname LIKE '%$search%' OR 
-                                    placeofbirth LIKE '%$search%'";
-                                        } else {
-                                            $sql = "SELECT * FROM infantinfo";
+                                            $where .= " AND (id LIKE '%$search%' OR firstname LIKE '%$search%' OR middlename LIKE '%$search%' OR surname LIKE '%$search%' OR placeofbirth LIKE '%$search%')";
+                                        }
+                                        if (!empty($sex_filter)) {
+                                            $where .= " AND sex = '" . mysqli_real_escape_string($con, $sex_filter) . "'";
+                                        }
+                                        if (!empty($birth_from)) {
+                                            $where .= " AND dateofbirth >= '" . mysqli_real_escape_string($con, $birth_from) . "'";
+                                        }
+                                        if (!empty($birth_to)) {
+                                            $where .= " AND dateofbirth <= '" . mysqli_real_escape_string($con, $birth_to) . "'";
                                         }
                                     }
 
+                                    // Total count for pagination
+                                    $count_sql = "SELECT COUNT(*) AS total FROM infantinfo WHERE $where";
+                                    $count_res = mysqli_query($con, $count_sql);
+                                    $total = 0;
+                                    if ($count_res) {
+                                        $row_count = mysqli_fetch_assoc($count_res);
+                                        $total = (int) ($row_count['total'] ?? 0);
+                                    }
+                                    $total_pages = ($total > 0) ? (int) ceil($total / $per_page) : 1;
+
+                                    // Fetch paginated rows
+                                    $sql = "SELECT * FROM infantinfo WHERE $where ORDER BY id ASC LIMIT $offset, $per_page";
                                     $result = mysqli_query($con, $sql);
                                     if ($result) {
-                                        while ($row = mysqli_fetch_assoc($result)) {
-                                            $id = $row['id'];
-                                            $firstname = $row['firstname'];
-                                            $middlename = $row['middlename'];
-                                            $surname = $row['surname'];
-                                            $fullName = trim(preg_replace('/\s+/', ' ', $firstname . ' ' . ($middlename ?? '') . ' ' . $surname));
-                                            $dateofbirth = $row['dateofbirth'];
-                                            $placeofbirth = $row['placeofbirth'];
-                                            $sex = $row['sex'];
-                                            $weight = $row['weight'];
-                                            $height = $row['height'];
-                                            $bloodtype = $row['bloodtype'];
-                                            $nationality = $row['nationality'];
-                                            $parentIdForInfant = isset($row['parent_id']) ? (int) $row['parent_id'] : 0;
-                                            $viewDetailsUrl = 'view_details.php?parent_id=' . $parentIdForInfant;
-                                    ?>
+                                        if ($total === 0) {
+                                            $colspan = 10; // number of table columns
+                                            $msg = 'No results found.';
+                                            if (!empty($search)) {
+                                                $msg = 'No results found for "' . htmlspecialchars($search, ENT_QUOTES, 'UTF-8') . '".';
+                                            }
+                                            echo '<tr><td colspan="' . $colspan . '" class="text-center text-muted">' . $msg . '</td></tr>';
+                                        } else {
+                                            while ($row = mysqli_fetch_assoc($result)) {
+                                                $id = $row['id'];
+                                                $firstname = $row['firstname'];
+                                                $middlename = $row['middlename'];
+                                                $surname = $row['surname'];
+                                                $fullName = trim(preg_replace('/\s+/', ' ', $firstname . ' ' . ($middlename ?? '') . ' ' . $surname));
+                                                $dateofbirth = $row['dateofbirth'];
+                                                $placeofbirth = $row['placeofbirth'];
+                                                $sex = $row['sex'];
+                                                $weight = $row['weight'];
+                                                $height = $row['height'];
+                                                $bloodtype = $row['bloodtype'];
+                                                $nationality = $row['nationality'];
+                                                $parentIdForInfant = isset($row['parent_id']) ? (int) $row['parent_id'] : 0;
+                                                $viewDetailsUrl = 'view_details.php?parent_id=' . $parentIdForInfant;
+                                                ?>
 
-                                            <tr>
-                                                <th scope="row"><?php echo $id; ?></th>
-                                                <td><?php echo $fullName; ?></td>
-                                                <td><?php echo $dateofbirth; ?></td>
-                                                <td><?php echo $placeofbirth; ?></td>
-                                                <td><?php echo $sex; ?></td>
-                                                <td><?php echo $weight; ?></td>
-                                                <td><?php echo $height; ?></td>
-                                                <td><?php echo $bloodtype; ?></td>
-                                                <td><?php echo $nationality; ?></td>
-                                                <td class="d-flex gap-1 justify-content-center action-icons">
-                                                    <a href="<?php echo htmlspecialchars($viewDetailsUrl); ?>" class="btn btn-outline-info btn-sm" title="View Details">
-                                                        <i class="bi bi-eye"></i>
-                                                    </a>
-                                                    <?php if (!$isParent): ?>
-                                                        <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#formModal_<?php echo $id; ?>" title="Edit"><i class="bi bi-pencil-square"></i></button>
-                                                        <?php if ($showDeleteButton): ?>
-                                                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete(<?php echo $id; ?>)" title="Delete"><i class="bi bi-trash"></i></button>
+                                                <tr>
+                                                    <th scope="row"><?php echo $id; ?></th>
+                                                    <td><?php echo $fullName; ?></td>
+                                                    <td><?php echo $dateofbirth; ?></td>
+                                                    <td><?php echo $placeofbirth; ?></td>
+                                                    <td><?php echo $sex; ?></td>
+                                                    <td><?php echo $weight; ?></td>
+                                                    <td><?php echo $height; ?></td>
+                                                    <td><?php echo $bloodtype; ?></td>
+                                                    <td><?php echo $nationality; ?></td>
+                                                    <td class="d-flex gap-1 justify-content-center action-icons">
+                                                        <a href="<?php echo htmlspecialchars($viewDetailsUrl); ?>" class="btn btn-outline-info btn-sm" title="View Details">
+                                                            <i class="bi bi-eye"></i>
+                                                        </a>
+                                                        <?php if (!$isParent): ?>
+                                                            <button class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#formModal_<?php echo $id; ?>" title="Edit"><i class="bi bi-pencil-square"></i></button>
+                                                            <?php if ($showDeleteButton): ?>
+                                                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete(<?php echo $id; ?>)" title="Delete"><i class="bi bi-trash"></i></button>
+                                                            <?php endif; ?>
                                                         <?php endif; ?>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
+                                                    </td>
+                                                </tr>
 
-                                            <!-- Modal for EDIT -->
-                                            <div class="modal fade" id="formModal_<?php echo $id; ?>" tabindex="-1" aria-labelledby="formModalLabel_<?php echo $id; ?>" aria-hidden="true">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title text-primary" id="formModalLabel_<?php echo $id; ?>">Edit Infant Information</h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                        </div>
-                                                        <div class="modal-body">
-                                                            <form method="POST" action="viewinfant.php">
-                                                                <input type="hidden" name="new_id" value="<?php echo $id; ?>">
+                                                <!-- Modal for EDIT -->
+                                                <div class="modal fade" id="formModal_<?php echo $id; ?>" tabindex="-1" aria-labelledby="formModalLabel_<?php echo $id; ?>" aria-hidden="true">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title text-primary" id="formModalLabel_<?php echo $id; ?>">Edit Infant Information</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                <form method="POST" action="viewinfant.php">
+                                                                    <input type="hidden" name="new_id" value="<?php echo $id; ?>">
 
-                                                                <div class="mb-3">
-                                                                    <label class="form-label">First Name</label>
-                                                                    <input type="text" class="form-control" name="new_firstname" value="<?php echo $firstname; ?>" required>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label">Middle Name</label>
-                                                                    <input type="text" class="form-control" name="new_middle" value="<?php echo $middlename; ?>">
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label">Surname</label>
-                                                                    <input type="text" class="form-control" name="new_surname" value="<?php echo $surname; ?>" required>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label">Date of Birth</label>
-                                                                    <input type="date" class="form-control" name="new_dateofbirth" value="<?php echo $dateofbirth; ?>" required>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label">Place of Birth</label>
-                                                                    <input type="text" class="form-control" name="new_birthplace" value="<?php echo $placeofbirth; ?>">
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label">Nationality</label>
-                                                                    <input type="text" class="form-control" name="new_nationality" value="<?php echo $nationality; ?>">
-                                                                </div>
-                                                                <div class="row mb-3">
-                                                                    <div class="col-md-6">
-                                                                        <label class="form-label">Weight (kg)</label>
-                                                                        <input type="number" class="form-control" name="new_weight" value="<?php echo $weight; ?>" step="0.01" required>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">First Name</label>
+                                                                        <input type="text" class="form-control" name="new_firstname" value="<?php echo $firstname; ?>" required>
                                                                     </div>
-                                                                    <div class="col-md-6">
-                                                                        <label class="form-label">Height (cm)</label>
-                                                                        <input type="number" class="form-control" name="new_height" value="<?php echo $height; ?>" step="0.1" required>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Middle Name</label>
+                                                                        <input type="text" class="form-control" name="new_middle" value="<?php echo $middlename; ?>">
                                                                     </div>
-                                                                </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Surname</label>
+                                                                        <input type="text" class="form-control" name="new_surname" value="<?php echo $surname; ?>" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Date of Birth</label>
+                                                                        <input type="date" class="form-control" name="new_dateofbirth" value="<?php echo $dateofbirth; ?>" required>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Place of Birth</label>
+                                                                        <input type="text" class="form-control" name="new_birthplace" value="<?php echo $placeofbirth; ?>">
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Nationality</label>
+                                                                        <input type="text" class="form-control" name="new_nationality" value="<?php echo $nationality; ?>">
+                                                                    </div>
+                                                                    <div class="row mb-3">
+                                                                        <div class="col-md-6">
+                                                                            <label class="form-label">Weight (kg)</label>
+                                                                            <input type="number" class="form-control" name="new_weight" value="<?php echo $weight; ?>" step="0.01" required>
+                                                                        </div>
+                                                                        <div class="col-md-6">
+                                                                            <label class="form-label">Height (cm)</label>
+                                                                            <input type="number" class="form-control" name="new_height" value="<?php echo $height; ?>" step="0.1" required>
+                                                                        </div>
+                                                                    </div>
 
-                                                                <div class="text-center">
-                                                                    <button type="submit" name="new_submit" class="btn btn-primary w-50">Update</button>
-                                                                </div>
-                                                            </form>
+                                                                    <div class="text-center">
+                                                                        <button type="submit" name="new_submit" class="btn btn-primary w-50">Update</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                    <?php
-                                        } // Close the while loop
-                                    } // Close the if block
+                                                <?php
+                                            } // end while
+                                        } // end else
+                                    } // end if result
                                     ?>
                                 </tbody>
                             </table>
+                            <?php if (isset($total_pages) && $total_pages > 1): ?>
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination justify-content-center mt-3">
+                                        <?php
+                                        $search_param = $search !== '' ? '&search=' . urlencode($search) : '';
+                                        $sex_param = (isset($_GET['sex']) && in_array($_GET['sex'], ['Male', 'Female'])) ? '&sex=' . urlencode($_GET['sex']) : (isset($_GET['sex']) && $_GET['sex'] === '' ? '&sex=' : '');
+                                        $birth_from_param = (!empty($birth_from)) ? '&birth_from=' . urlencode($birth_from) : (isset($_GET['birth_from']) && $_GET['birth_from'] === '' ? '&birth_from=' : '');
+                                        $birth_to_param = (!empty($birth_to)) ? '&birth_to=' . urlencode($birth_to) : (isset($_GET['birth_to']) && $_GET['birth_to'] === '' ? '&birth_to=' : '');
+                                        $prev_page = $page - 1;
+                                        $next_page = $page + 1;
+                                        ?>
+                                        <li class="page-item <?php echo ($page <= 1) ? 'disabled' : ''; ?>">
+                                            <a class="page-link" href="viewinfant.php?page=<?php echo max(1, $prev_page) . $search_param . $sex_param . $birth_from_param . $birth_to_param; ?>" aria-label="Previous">Previous</a>
+                                        </li>
+                                        <?php
+                                        $start = max(1, $page - 2);
+                                        $end = min($total_pages, $page + 2);
+                                        for ($p = $start; $p <= $end; $p++):
+                                        ?>
+                                            <li class="page-item <?php echo ($p === $page) ? 'active' : ''; ?>"><a class="page-link" href="viewinfant.php?page=<?php echo $p . $search_param . $sex_param . $birth_from_param . $birth_to_param; ?>"><?php echo $p; ?></a></li>
+                                        <?php endfor; ?>
+                                        <li class="page-item <?php echo ($page >= $total_pages) ? 'disabled' : ''; ?>">
+                                            <a class="page-link" href="viewinfant.php?page=<?php echo min($total_pages, $next_page) . $search_param . $sex_param . $birth_from_param . $birth_to_param; ?>" aria-label="Next">Next</a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -382,23 +513,15 @@ if (isset($_POST['new_submit'])) {
         });
     }
 
-    // Search function AJAX
+    // Search now uses the form submit button and GET parameter `search`.
+    // Live (keyup) AJAX search has been removed.
 
-    $(document).ready(function() {
-        $("#search").on("keyup", function() {
-            let searchText = $(this).val(); // Get input value
-            $.ajax({
-                url: "search_infant.php", // PHP file that will handle search
-                method: "GET",
-                data: {
-                    search: searchText
-                },
-                success: function(response) {
-                    $("tbody").html(response); // Update table with results
-                }
-            });
-        });
-    });
+    function clearSearch() {
+        var form = document.getElementById('searchForm');
+        var input = document.getElementById('search');
+        if (input) input.value = '';
+        if (form) form.submit();
+    }
 </script>
 <script src="assets/js/theme.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

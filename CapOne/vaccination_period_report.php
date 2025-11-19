@@ -240,13 +240,48 @@ function exportPeriodUsagePdf(array $payload): void
     $dompdf = new Dompdf($options);
 
     ob_start();
+    // Prepare header logos (base64) so the PDF header matches other templates
+    $logoLeftSrc = '';
+    $logoRightSrc = '';
+    $baseDir = realpath(__DIR__ . '/');
+    $logoDir = $baseDir . DIRECTORY_SEPARATOR . 'header logo';
+    $images = [];
+    if (is_dir($logoDir)) {
+        $images = glob($logoDir . DIRECTORY_SEPARATOR . '*.{jpg,jpeg,png,gif,JPG,JPEG,PNG,GIF}', GLOB_BRACE) ?: [];
+        sort($images, SORT_NATURAL | SORT_FLAG_CASE);
+    }
+    if (!empty($images)) {
+        $leftPath = $images[0];
+        $data = @file_get_contents($leftPath);
+        if ($data !== false) {
+            $mime = mime_content_type($leftPath) ?: 'image/jpeg';
+            $logoLeftSrc = 'data:' . $mime . ';base64,' . base64_encode($data);
+        }
+    }
+    if (isset($images[1])) {
+        $rightPath = $images[1];
+        $data2 = @file_get_contents($rightPath);
+        if ($data2 !== false) {
+            $mime2 = mime_content_type($rightPath) ?: 'image/jpeg';
+            $logoRightSrc = 'data:' . $mime2 . ';base64,' . base64_encode($data2);
+        }
+    }
     ?>
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
         <style>
-            body { font-family: DejaVu Sans, Arial, sans-serif; color: #111827; }
+            body { font-family: DejaVu Sans, Arial, sans-serif; color: #111827; margin: 18px; }
+            .pdf-header-table { width:100%; border-collapse:collapse; border:none; }
+            .pdf-header-table td { vertical-align:middle; border:none; }
+            .pdf-header-table .left, .pdf-header-table .right { width:15%; text-align:center; padding:6px 8px; }
+            .pdf-header-table .center { width:70%; text-align:center; padding:6px 8px; }
+            .pdf-logo { height:56px; max-width:120px; width:auto; display:inline-block }
+            .pdf-rule {height:4px; background:#0b5ed7; margin-top:8px}
+            .pdf-band {background:#f59c00; height:20px; margin-top:6px; color:#000; font-weight:700; text-align:center; line-height:20px}
+            .pdf-org {font-size:14px; font-weight:700; margin:0}
+            .pdf-sub {font-size:11px; margin:0; color:#2b2b2b}
             h1 { font-size: 20px; margin-bottom: 8px; }
             h2 { font-size: 16px; margin-top: 24px; margin-bottom: 8px; }
             table { width: 100%; border-collapse: collapse; margin-top: 8px; }
@@ -256,6 +291,27 @@ function exportPeriodUsagePdf(array $payload): void
         </style>
     </head>
     <body>
+        <table class="pdf-header-table">
+            <tr>
+                <td class="left">
+                    <?php if (!empty($logoLeftSrc)): ?>
+                        <img class="pdf-logo" src="<?php echo $logoLeftSrc; ?>" alt="Logo left">
+                    <?php endif; ?>
+                </td>
+                <td class="center">
+                    <p class="pdf-org">REPUBLIC OF THE PHILIPPINES</p>
+                    <p class="pdf-org">RHU ALIAGA</p>
+                    <p class="pdf-sub">Municipality of Aliaga, Nueva Ecija</p>
+                </td>
+                <td class="right">
+                    <?php if (!empty($logoRightSrc)): ?>
+                        <img class="pdf-logo" src="<?php echo $logoRightSrc; ?>" alt="Logo right">
+                    <?php endif; ?>
+                </td>
+            </tr>
+        </table>
+        <div class="pdf-rule"></div>
+        <div class="pdf-band">COMPLETED VACCINATION REPORT</div>
         <h1>Completed Vaccination Summary</h1>
         <table class="summary-table">
             <tr><td><strong>Period:</strong></td><td><?php echo htmlspecialchars($summary['period_label'] ?? '', ENT_QUOTES, 'UTF-8'); ?></td></tr>
