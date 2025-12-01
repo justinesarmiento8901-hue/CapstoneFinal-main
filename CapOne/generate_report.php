@@ -38,15 +38,21 @@ if (is_readable($barangayConfig)) {
         <h4 class="mb-4"><i class="bi bi-baby"></i> Infant Record System</h4>
         <a href="dashboard.php"><i class="bi bi-speedometer2"></i> Dashboard</a>
         <a href="addinfant.php"><i class="bi bi-person-fill-add"></i> Add Infant</a>
-        <a href="viewinfant.php"><i class="bi bi-journal-medical"></i> Infant Records</a>
+        <?php if (in_array($role, ['admin', 'healthworker'], true)): ?>
+            <a href="add_parents.php"><i class="bi bi-person-plus"></i> Add Parent</a>
+        <?php endif; ?>
         <a href="view_parents.php"><i class="bi bi-people"></i> Parent Records</a>
-        <?php if ($role === 'admin'): ?>
+        <a href="viewinfant.php"><i class="bi bi-journal-medical"></i> Infant Records</a>
+        <?php if ($role === 'admin' || $role === 'healthworker'): ?>
             <a href="update_growth.php"><i class="bi bi-activity"></i> Growth Tracking</a>
         <?php endif; ?>
         <a href="vaccination_schedule.php"><i class="bi bi-list-check"></i> Vaccination Schedule</a>
-        <a href="sms.php"><i class="bi bi-chat-dots"></i> SMS Management</a>
         <a href="generate_report.php" class="active"><i class="bi bi-clipboard-data"></i> Reports</a>
+        <a href="sms.php"><i class="bi bi-chat-dots"></i> SMS Management</a>
         <a href="account_settings.php"><i class="bi bi-gear"></i> Account Settings</a>
+        <?php if ($role === 'admin'): ?>
+            <a href="login_logs.php"><i class="bi bi-clipboard-data"></i> Logs</a>
+        <?php endif; ?>
         <a href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a>
     </div>
     <div class="content-area">

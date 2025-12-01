@@ -131,16 +131,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php if ($role === 'admin' || $role === 'healthworker'): ?>
             <a href="update_growth.php"><i class="bi bi-activity"></i> Growth Tracking</a>
         <?php endif; ?>
-        <a href="account_settings.php" class="active"><i class="bi bi-gear"></i> Account Settings</a>
         <?php if ($role !== 'parent'): ?>
             <a href="vaccination_schedule.php"><i class="bi bi-journal-medical"></i> Vaccination Schedule</a>
             <?php if (in_array($role, ['admin', 'report'], true)): ?>
                 <a href="generate_report.php"><i class="bi bi-clipboard-data"></i> Reports</a>
             <?php endif; ?>
             <a href="sms.php"><i class="bi bi-chat-dots"></i> SMS Management</a>
-            <?php if ($role === 'admin'): ?>
-                <a href="login_logs.php"><i class="bi bi-clipboard-data"></i> Logs</a>
-            <?php endif; ?>
+        <?php endif; ?>
+        <a href="account_settings.php" class="active"><i class="bi bi-gear"></i> Account Settings</a>
+        <?php if ($role === 'admin'): ?>
+            <a href="login_logs.php"><i class="bi bi-clipboard-data"></i> Logs</a>
         <?php endif; ?>
         <a href="logout.php"><i class="bi bi-box-arrow-right"></i> Logout</a>
     </div>
