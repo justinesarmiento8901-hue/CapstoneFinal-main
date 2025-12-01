@@ -245,8 +245,8 @@ if (isset($_POST['new_submit'])) {
                                         <th scope="col">Date of Birth</th>
                                         <th scope="col">Place of Birth</th>
                                         <th scope="col">Sex</th>
-                                        <th scope="col">Weight</th>
-                                        <th scope="col">Height</th>
+                                        <th scope="col">Weight (kg)</th>
+                                        <th scope="col">Height (cm)</th>
                                         <th scope="col">BloodType</th>
                                         <th scope="col">Nationality</th>
                                         <th scope="col">Action</th>
@@ -368,8 +368,8 @@ if (isset($_POST['new_submit'])) {
                                                     <td><?php echo $dateofbirth; ?></td>
                                                     <td><?php echo $placeofbirth; ?></td>
                                                     <td><?php echo $sex; ?></td>
-                                                    <td><?php echo $weight; ?></td>
-                                                    <td><?php echo $height; ?></td>
+                                                    <td><?php echo $weight !== null && $weight !== '' ? htmlspecialchars($weight, ENT_QUOTES, 'UTF-8') . 'kg' : '—'; ?></td>
+                                                    <td><?php echo $height !== null && $height !== '' ? htmlspecialchars($height, ENT_QUOTES, 'UTF-8') . 'cm' : '—'; ?></td>
                                                     <td><?php echo $bloodtype; ?></td>
                                                     <td><?php echo $nationality; ?></td>
                                                     <td class="d-flex gap-1 justify-content-center action-icons">
