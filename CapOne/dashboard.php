@@ -278,7 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register_healthworker
         <?php endif; ?>
         <?php if ($role !== 'parent'): ?>
             <a href="vaccination_schedule.php"><i class="bi bi-journal-medical"></i> Vaccination Schedule</a>
-            <?php if (in_array($role, ['admin', 'report'], true)): ?>
+            <?php if (in_array($role, ['admin', 'report', 'healthworker'], true)): ?>
                 <a href="generate_report.php"><i class="bi bi-clipboard-data"></i> Reports</a>
             <?php endif; ?>
             <a href="sms.php"><i class="bi bi-chat-dots"></i> SMS Management</a>

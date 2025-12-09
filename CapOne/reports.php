@@ -11,7 +11,7 @@ if (!isset($_SESSION['user'])) {
 }
 
 $user = $_SESSION['user'];
-$allowedRoles = ['admin', 'report'];
+$allowedRoles = ['admin', 'report', 'healthworker'];
 if (!in_array($user['role'] ?? '', $allowedRoles, true)) {
     header('Content-Type: application/json', true, 403);
     http_response_code(403);

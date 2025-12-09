@@ -2,7 +2,7 @@
 session_start();
 include 'dbForm.php';
 $role = $_SESSION['user']['role'] ?? '';
-if (!in_array($role, ['admin', 'report'], true)) {
+if (!in_array($role, ['admin', 'report', 'healthworker'], true)) {
     header('Location: dashboard.php');
     exit;
 }
