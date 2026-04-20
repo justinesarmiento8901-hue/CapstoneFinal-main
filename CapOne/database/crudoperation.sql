@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 28, 2025 at 01:05 PM
+-- Generation Time: Apr 20, 2026 at 08:09 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -46,7 +46,10 @@ INSERT INTO `audit_logs` (`id`, `user_id`, `action`, `entity_table`, `entity_id`
 (1, 1, 'edit', 'parents', 1, 'Updated parent record with ID 1', '::1', '2025-10-28 19:46:23'),
 (2, 1, 'edit', 'infantinfo', 1, 'Updated infant record with ID 1', '::1', '2025-10-28 19:47:54'),
 (3, 1, 'delete', 'infantinfo', 20, 'Deleted infant record with ID 20', '::1', '2025-10-28 19:49:14'),
-(4, 1, 'delete', 'parents', 7, 'Deleted parent record with ID 7', '::1', '2025-10-28 19:49:55');
+(4, 1, 'delete', 'parents', 7, 'Deleted parent record with ID 7', '::1', '2025-10-28 19:49:55'),
+(5, 1, 'add', 'parents', 17, 'Added parent record with ID 17', '::1', '2026-02-11 11:57:15'),
+(6, 1, 'add', 'infantinfo', 35, 'Added infant record with ID 35', '::1', '2026-02-11 11:59:23'),
+(7, 1, 'add', 'infantinfo', 36, 'Added infant record with ID 36', '::1', '2026-04-20 14:05:02');
 
 -- --------------------------------------------------------
 
@@ -194,7 +197,9 @@ INSERT INTO `infantinfo` (`id`, `firstname`, `middlename`, `surname`, `dateofbir
 (31, 'Patrick', 'Jimenez', 'Reyes', '2025-09-10', 'Cabanatuan City', 'Male', 5.9, 47, NULL, 'AB+', 'Filipino', 10),
 (32, 'buloy', 'argon', 'Sarmiento', '2025-01-23', 'aliaga', 'Male', 7.5, 65, NULL, 'A+', 'Filipino', 11),
 (33, 'angela', 'matias', 'Sarmiento', '2025-01-24', 'manila', 'Male', 8, 65, NULL, 'B+', 'Filipino', 12),
-(34, 'Manok', 'susojo', 'palaka', '2025-01-02', 'manila', 'Male', 2.5, 46, NULL, 'B-', 'Filipino', 15);
+(34, 'Manok', 'susojo', 'palaka', '2025-01-02', 'manila', 'Male', 2.5, 46, NULL, 'B-', 'Filipino', 15),
+(35, 'mikaela', 'Pingol', 'boluso', '2026-01-11', 'aliaga', 'Female', 6.3, 60.3, NULL, 'A+', 'filipino', 17),
+(36, 'Justine', 'Angeles', 'Sarmiento', '2025-05-15', 'Cavite', 'Male', 84.3, 77.4, NULL, 'B-', 'Filipino', 3);
 
 -- --------------------------------------------------------
 
@@ -297,6 +302,13 @@ CREATE TABLE `login_attempts` (
   `attempt_time` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `login_attempts`
+--
+
+INSERT INTO `login_attempts` (`id`, `email`, `ip_address`, `attempt_time`) VALUES
+(1, 'justinboluso@gmail.com', '::1', '2026-02-11 13:06:51');
+
 -- --------------------------------------------------------
 
 --
@@ -358,7 +370,8 @@ INSERT INTO `parents` (`id`, `first_name`, `last_name`, `email`, `phone`, `addre
 (13, 'Justine', 'Sarmiento', 'justine@gmail.com', '0999232432', 'zone 2, Bibiclat, Aliaga, Nueva Ecija', 'Purok 1', 'Aliaga', 'Nueva Ecija', NULL, '2025-10-26 11:22:31', '2025-10-26 11:22:31', 'Bibiclat'),
 (14, 'Noeliza', 'Bombio', 'Noelizaann@gmail.com', '09925094535', 'zone 4, Bibiclat, Aliaga, Nueva Ecija', 'Purok 1', 'Aliaga', 'Nueva Ecija', NULL, '2025-10-26 11:30:43', '2025-10-26 11:30:43', 'Bibiclat'),
 (15, 'Rayver', 'Viernes', 'rayver@gmail.com', '09925094535', 'zone 1, Bibiclat, Aliaga, Nueva Ecija', 'Purok 1', 'Aliaga', 'Nueva Ecija', NULL, '2025-10-26 11:35:44', '2025-10-26 11:35:44', 'Bibiclat'),
-(16, 'Jessy', 'Bombio', 'jessy@gmail.com', '0999232432', 'Bibiclat, Purok 5, Aliaga, Nueva Ecija', 'Purok 5', 'Aliaga', 'Nueva Ecija', NULL, '2025-10-28 10:21:31', '2025-10-28 10:21:31', 'Bibiclat');
+(16, 'Jessy', 'Bombio', 'jessy@gmail.com', '0999232432', 'Bibiclat, Purok 5, Aliaga, Nueva Ecija', 'Purok 5', 'Aliaga', 'Nueva Ecija', NULL, '2025-10-28 10:21:31', '2025-10-28 10:21:31', 'Bibiclat'),
+(17, 'Justin', 'Boluso', 'justineboluso@gmail.com', '09936359169', 'Umangan, Purok 6, Aliaga, Nueva Ecija', 'Purok 6', 'Aliaga', 'Nueva Ecija', NULL, '2026-02-11 03:57:15', '2026-02-11 03:57:15', 'Umangan');
 
 -- --------------------------------------------------------
 
@@ -517,7 +530,15 @@ INSERT INTO `tbl_report_logs` (`id`, `user_id`, `run_type`, `filters_json`, `cre
 (112, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"All\",\"vaccine\":null,\"group_by\":\"none\"}', '2025-10-24 13:07:20'),
 (113, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"All\",\"vaccine\":null,\"group_by\":\"none\"}', '2025-10-28 06:16:02'),
 (114, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"All\",\"vaccine\":null,\"group_by\":\"none\"}', '2025-10-28 06:18:32'),
-(115, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"All\",\"vaccine\":null,\"group_by\":\"none\"}', '2025-10-28 06:32:30');
+(115, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"All\",\"vaccine\":null,\"group_by\":\"none\"}', '2025-10-28 06:32:30'),
+(116, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"All\",\"vaccine\":null,\"group_by\":\"none\"}', '2026-02-11 03:55:25'),
+(117, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"All\",\"vaccine\":null,\"group_by\":\"none\"}', '2026-02-11 05:02:24'),
+(118, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"Pending\",\"vaccine\":null,\"group_by\":\"none\"}', '2026-02-11 05:02:28'),
+(119, 1, 'csv', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"Pending\",\"vaccine\":null,\"group_by\":\"none\"}', '2026-02-11 05:02:30'),
+(120, 1, 'pdf', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"Pending\",\"vaccine\":null,\"group_by\":\"none\"}', '2026-02-11 05:02:56'),
+(121, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"All\",\"vaccine\":null,\"group_by\":\"none\"}', '2026-02-11 05:03:32'),
+(122, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"All\",\"vaccine\":null,\"group_by\":\"none\"}', '2026-02-19 02:50:10'),
+(123, 1, 'preview', '{\"barangays\":[],\"date_from\":null,\"date_to\":null,\"status\":\"All\",\"vaccine\":null,\"group_by\":\"none\"}', '2026-02-19 02:50:25');
 
 -- --------------------------------------------------------
 
@@ -581,7 +602,9 @@ INSERT INTO `tbl_vaccination_details` (`id`, `infant_id`, `vaccine_name`, `stage
 (48, 8, 'Oral Polio Vaccine (1st dose)', '1½ mo', 'Completed', '2025-10-28 07:14:07', '2025-10-28 07:15:06'),
 (49, 9, 'BCG', 'Birth', 'Completed', '2025-10-28 07:18:36', '2025-10-28 07:19:28'),
 (50, 10, 'Hepatitis B (HepB)', 'Birth', 'Completed', '2025-10-28 07:42:19', '2025-10-28 07:43:32'),
-(51, 10, 'Pentavalent (1st dose)', '1½ mo', 'Completed', '2025-10-28 08:06:14', '2025-10-28 08:42:40');
+(51, 10, 'Pentavalent (1st dose)', '1½ mo', 'Completed', '2025-10-28 08:06:14', '2025-10-28 08:42:40'),
+(52, 35, 'BCG', 'Birth', 'Pending', '2026-02-11 04:00:32', '2026-02-11 04:00:32'),
+(53, 36, 'BCG', 'Birth', 'Pending', '2026-04-20 06:07:18', '2026-04-20 06:07:18');
 
 -- --------------------------------------------------------
 
@@ -651,7 +674,9 @@ INSERT INTO `tbl_vaccination_schedule` (`vacc_id`, `infant_id`, `infant_name`, `
 (48, 8, NULL, 'Oral Polio Vaccine (1st dose)', NULL, '2025-10-28', '2025-11-28', '08:14:00', 'Completed', '', '2025-10-28 07:14:07', 'Bucot', 'Justine argon Sarmiento'),
 (49, 9, NULL, 'BCG', NULL, '2025-10-28', '2025-11-28', '08:21:00', 'Completed', '', '2025-10-28 07:18:36', 'Bucot', 'Administrator'),
 (50, 10, NULL, 'Hepatitis B (HepB)', NULL, '2025-10-28', '2025-11-28', '20:42:00', 'Completed', '', '2025-10-28 07:42:19', 'Bucot', 'Administrator'),
-(51, 10, NULL, 'Pentavalent (1st dose)', NULL, '2025-10-28', '2025-11-28', '08:08:00', 'Completed', '', '2025-10-28 08:06:14', 'Bucot', 'Administrator');
+(51, 10, NULL, 'Pentavalent (1st dose)', NULL, '2025-10-28', '2025-11-28', '08:08:00', 'Completed', '', '2025-10-28 08:06:14', 'Bucot', 'Administrator'),
+(52, 35, NULL, 'BCG', NULL, '2026-02-11', '2026-03-11', '08:00:00', 'Pending', '', '2026-02-11 04:00:32', 'Umangan', NULL),
+(53, 36, NULL, 'BCG', NULL, '2026-04-20', '2026-05-20', '08:36:00', 'Pending', '', '2026-04-20 06:07:18', 'Bucot', NULL);
 
 -- --------------------------------------------------------
 
@@ -745,7 +770,8 @@ INSERT INTO `users` (`id`, `email`, `password`, `name`, `created_at`, `usersname
 (30, 'try@gmail.com', '$2y$10$tTagYjwoAtAq0LsGNdK0DeQqfkBHvgPJ9VeYZF8o3jwbEixG9nsm2', 'try', '2025-10-26', 0, 'healthworker'),
 (46, 'sarmiento@gmail.com', '$2y$10$fhXISOZd2JjndR1ijW5qsej0mu0zdIRjYFwZhJDPjnsP9GdCA7JPe', 'Justine argon Sarmiento', '2025-10-28', 0, 'healthworker'),
 (47, 'ann@gmail.com', '$2y$10$1v55fsnlrjdX07dqgdWsJeX9Sus6fs4BaMjxCTNPDn1sS8kbIbczS', 'Noeliza Angeles Bombio', '2025-10-28', 0, 'healthworker'),
-(48, 'jessy@gmail.com', '$2y$10$0M2QdIvd309AWIuNXDdPvOcY3YHHWjzKreGGt2z42V9on9PbZNoie', 'Jessy Bombio', '2025-10-28', 0, 'parent');
+(48, 'jessy@gmail.com', '$2y$10$0M2QdIvd309AWIuNXDdPvOcY3YHHWjzKreGGt2z42V9on9PbZNoie', 'Jessy Bombio', '2025-10-28', 0, 'parent'),
+(49, 'justineboluso@gmail.com', '$2y$10$KH2Kw86pXGqTk76W.bhDY.ufc9l6VTp8H0z1bwq4VUo3M53s3hoLu', 'Justin Boluso', '2026-02-11', 0, 'parent');
 
 -- --------------------------------------------------------
 
@@ -798,7 +824,15 @@ INSERT INTO `user_logins` (`id`, `user_id`, `email`, `ip_address`, `success`, `r
 (28, 46, 'sarmiento@gmail.com', '::1', 1, 'Login successful', '2025-10-28 01:53:45'),
 (29, 1, 'admin@gmail.com', '::1', 1, 'Login successful', '2025-10-28 14:14:33'),
 (30, 46, 'sarmiento@gmail.com', '::1', 1, 'Login successful', '2025-10-28 14:37:36'),
-(31, 1, 'admin@gmail.com', '::1', 1, 'Login successful', '2025-10-28 15:16:11');
+(31, 1, 'admin@gmail.com', '::1', 1, 'Login successful', '2025-10-28 15:16:11'),
+(32, 1, 'admin@gmail.com', '::1', 1, 'Login successful', '2026-02-11 11:54:19'),
+(33, NULL, 'justinboluso@gmail.com', '::1', 0, 'User not found', '2026-02-11 13:06:51'),
+(34, 49, 'justineboluso@gmail.com', '::1', 1, 'Login successful', '2026-02-11 13:07:32'),
+(35, 1, 'admin@gmail.com', '::1', 1, 'Login successful', '2026-02-19 10:41:56'),
+(36, 15, 'Rogelia@gmail.com', '::1', 1, 'Login successful', '2026-02-19 10:50:52'),
+(37, 2, 'healthworker@gmail.com', '::1', 1, 'Login successful', '2026-02-19 10:51:44'),
+(38, 1, 'admin@gmail.com', '::1', 1, 'Login successful', '2026-02-26 11:54:27'),
+(39, 1, 'admin@gmail.com', '::1', 1, 'Login successful', '2026-04-20 14:03:06');
 
 --
 -- Indexes for dumped tables
@@ -912,7 +946,7 @@ ALTER TABLE `user_logins`
 -- AUTO_INCREMENT for table `audit_logs`
 --
 ALTER TABLE `audit_logs`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `growth_reference`
@@ -930,7 +964,7 @@ ALTER TABLE `healthworker`
 -- AUTO_INCREMENT for table `infantinfo`
 --
 ALTER TABLE `infantinfo`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `infant_previous_records`
@@ -948,37 +982,37 @@ ALTER TABLE `laboratory`
 -- AUTO_INCREMENT for table `login_attempts`
 --
 ALTER TABLE `login_attempts`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `parents`
 --
 ALTER TABLE `parents`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
 
 --
 -- AUTO_INCREMENT for table `sms_queue`
 --
 ALTER TABLE `sms_queue`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=141;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=143;
 
 --
 -- AUTO_INCREMENT for table `tbl_report_logs`
 --
 ALTER TABLE `tbl_report_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=116;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=124;
 
 --
 -- AUTO_INCREMENT for table `tbl_vaccination_details`
 --
 ALTER TABLE `tbl_vaccination_details`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
 -- AUTO_INCREMENT for table `tbl_vaccination_schedule`
 --
 ALTER TABLE `tbl_vaccination_schedule`
-  MODIFY `vacc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `vacc_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
 
 --
 -- AUTO_INCREMENT for table `tbl_vaccine_reference`
@@ -990,13 +1024,13 @@ ALTER TABLE `tbl_vaccine_reference`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(100) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=49;
+  MODIFY `id` int(100) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=50;
 
 --
 -- AUTO_INCREMENT for table `user_logins`
 --
 ALTER TABLE `user_logins`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=40;
 
 --
 -- Constraints for dumped tables
